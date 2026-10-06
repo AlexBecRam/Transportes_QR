@@ -48,7 +48,7 @@
 
     <!-- Captura Manual -->
     <div id="bloqueManual" style="display: none;">
-      <input type="text" id="inputManualCredencial" placeholder="Ej. 08001906" oninput="sincronizarManual(this.value)">
+      <input type="text" id="inputManualCredencial" placeholder="Ej. 08001986" oninput="sincronizarManual(this.value)">
       <button type="button" class="btn-toggle-manual" onclick="mostrarModoEscaner()">Usar cámara para escanear</button>
     </div>
 
@@ -90,8 +90,8 @@
 
 <script>
   // CONFIGURACIÓN DE SUPABASE
-  const SUPABASE_URL = "https://jjfcesrsexuxyamoghsx.supabase.co ";
-  const SUPABASE_KEY = "sb_publishable_tkHpyaqmhlm8HuQvcVwzPg_Q0hehaPF"; // <-- PEGA AQUÍ LA CLAVE QUE COPIASTE
+  const SUPABASE_URL = "https://jjfcesrsexuxyamoghsx.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_tkHpyaqmhlm8HuQvcVwzPg_Q0hehaPF"; // <-- PEGA AQUÍ LA CLAVE 'Publishable key' QUE COPIASTE
   const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   const urlParams = new URLSearchParams(window.location.search);
@@ -188,20 +188,22 @@
       return;
     }
 
-    // Normaliza el número borrando ceros iniciales para la comparación
+    // Normalización para comparar conservando o ignorando el "0" inicial
+    const numTexto = credencialIngresada;
     const numLimpio = parseInt(credencialIngresada, 10).toString();
 
     // 1. Consultar credencial en Supabase
-    const { data: usuario, error } = await _supabase
+    const { data: usuarios, error } = await _supabase
       .from('credenciales_validas')
       .select('*')
-      .eq('numero_credencial', numLimpio)
-      .maybeSingle();
+      .or(`numero_credencial.eq.${numTexto},numero_credencial.eq.${numLimpio}`);
 
     if (error) {
       alert("Error al conectar con el servidor: " + error.message);
       return;
     }
+
+    const usuario = usuarios && usuarios.length > 0 ? usuarios[0] : null;
 
     // Si la credencial no existe en el padrón
     if (!usuario) {
@@ -243,7 +245,7 @@
         {
           folio_reporte: folio,
           id_chofer: idChofer,
-          credencial_emisor: numLimpio,
+          credencial_emisor: numTexto,
           tipo_envio: tipo,
           puntuacion: ratingVal ? ratingVal.toString() : "N/A",
           etiqueta: etiquetas[ratingVal] || "N/A",
@@ -255,7 +257,7 @@
     if (insertError) {
       alert("Error al guardar el registro: " + insertError.message);
     } else {
-      alert("¡Registro enviado exitosamente!\nFolio: " + folio + "\nUsuario: " + (usuario.nombre_usuario || numLimpio));
+      alert("¡Registro enviado exitosamente!\nFolio: " + folio + "\nUsuario: " + (usuario.nombre_usuario || numTexto));
       location.reload();
     }
   });
