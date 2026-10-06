@@ -31,24 +31,29 @@
       position: relative;
     }
 
-    /* Contenedor del encabezado con logo a la izquierda y título centrado */
+    /* Encabezado con Logo Oficial PNG */
     .header-container {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
       margin-bottom: 20px;
       border-bottom: 2px solid #f1f5f9;
-      padding-bottom: 12px;
+      padding-bottom: 14px;
     }
 
     .header-logo {
       flex-shrink: 0;
-    }
-
-    .header-logo svg {
       width: 55px;
       height: 65px;
-      display: block;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .header-logo img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
     }
 
     .header-title {
@@ -110,21 +115,10 @@
 <body>
 
 <div class="card">
-  <!-- Encabezado con Logo alineado a la Izquierda y Texto Institucional -->
+  <!-- Encabezado con Imagen de Logo Oficial de IUSA -->
   <div class="header-container">
     <div class="header-logo">
-      <!-- SVG Oficial IUSA con alineación y proporciones exactas -->
-      <svg viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg">
-        <!-- Marco romboide externo -->
-        <polygon points="75,5 190,110 160,200 125,200 10,95 40,5" fill="none" stroke="#000000" stroke-width="14" stroke-linejoin="miter"/>
-        <!-- Letras IUSA alineadas en la diagonal -->
-        <text x="32" y="75" font-family="'Arial Black', sans-serif" font-weight="900" font-size="52" fill="#E30613">I</text>
-        <text x="52" y="115" font-family="'Arial Black', sans-serif" font-weight="900" font-size="52" fill="#E30613">U</text>
-        <text x="92" y="155" font-family="'Arial Black', sans-serif" font-weight="900" font-size="52" fill="#E30613">S</text>
-        <text x="132" y="195" font-family="'Arial Black', sans-serif" font-weight="900" font-size="52" fill="#E30613">A</text>
-        <!-- Año 1939 centrado abajo -->
-        <text x="100" y="232" font-family="Arial, sans-serif" font-weight="bold" font-size="26" fill="#000000" text-anchor="middle">1939</text>
-      </svg>
+      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Logo_IUSA.svg/500px-Logo_IUSA.svg.png" alt="IUSA Logo">
     </div>
     <div class="header-title">
       <h2>Gestión de Transporte</h2>
@@ -192,7 +186,7 @@
 <script>
   // CONFIGURACIÓN DE SUPABASE
   const SUPABASE_URL = "https://jjfcesrsexuxyamoghsx.supabase.co";
-  const SUPABASE_KEY = "sb_publishable_tkHpyaqmhlm8HuQvcVwzPg_Q0hehaPF"; // <-- PEGA AQUÍ TU CLAVE 'Publishable key'
+  const SUPABASE_KEY = "sb_publishable_tkHpyaqmhlm8HuQvcVwzPg_Q0hehaPF  "; // <-- PEGA AQUÍ TU CLAVE 'Publishable key'
   const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   const urlParams = new URLSearchParams(window.location.search);
@@ -359,11 +353,11 @@
       return;
     }
 
-    // Fecha y hora local limpia (México)
+    // Fecha y hora local limpia sin sufijos de zona horaria
     const ahora = new Date();
     const isoLocal = new Date(ahora.getTime() - (ahora.getTimezoneOffset() * 60000)).toISOString().replace('T', ' ').substring(0, 19);
 
-    // 3. Guardar Reporte en Supabase (solo guarda el idCamion en id_chofer)
+    // 3. Guardar Reporte en Supabase
     const tipo = document.getElementById('tipoEnvio').value;
     const folio = "REP-" + Math.floor(100000 + Math.random() * 900000);
 
