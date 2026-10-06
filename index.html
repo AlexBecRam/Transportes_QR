@@ -20,25 +20,26 @@
       position: relative;
     }
 
-    /* Imagen del logotipo de IUSA colocada como Marca de Agua de Fondo */
+    /* Marca de agua de fondo SVG con el Logo IUSA */
     body::before {
       content: "";
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Logo_IUSA.svg/1200px-Logo_IUSA.svg.png');
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 320px;
+      height: 380px;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 380"><path d="M 120,5 L 315,190 L 260,320 L 205,320 L 5,120 L 60,5 Z" fill="none" stroke="%23000000" stroke-width="20"/><text x="12" y="115" font-family="Arial Black,sans-serif" font-weight="900" font-size="95" fill="%23E30613">I</text><text x="40" y="180" font-family="Arial Black,sans-serif" font-weight="900" font-size="95" fill="%23E30613">U</text><text x="110" y="250" font-family="Arial Black,sans-serif" font-weight="900" font-size="95" fill="%23E30613">S</text><text x="180" y="310" font-family="Arial Black,sans-serif" font-weight="900" font-size="95" fill="%23E30613">A</text><text x="175" y="365" font-family="Arial,sans-serif" font-weight="bold" font-size="42" fill="%23000000">1939</text></svg>');
       background-repeat: no-repeat;
       background-position: center;
-      background-size: 280px auto;
-      opacity: 0.10; /* Opacidad suave para no tapar los textos */
+      background-size: contain;
+      opacity: 0.08;
       z-index: 0;
       pointer-events: none;
     }
 
     .card {
-      background: rgba(255, 255, 255, 0.92); /* Tarjeta semi-transparente que deja ver la marca de agua */
+      background: rgba(255, 255, 255, 0.94);
       backdrop-filter: blur(4px);
       border-radius: 14px;
       padding: 22px;
@@ -53,12 +54,12 @@
 
     .header-logo {
       text-align: center;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
 
-    .header-logo img {
-      max-width: 80px;
-      height: auto;
+    .header-logo svg {
+      width: 65px;
+      height: 80px;
     }
 
     h2 { text-align: center; color: #0f172a; margin-top: 0; margin-bottom: 15px; font-size: 20px; }
@@ -73,7 +74,7 @@
     .info-box p { margin: 5px 0; color: #0369a1; font-weight: 600; font-size: 14px; }
     
     label { font-weight: bold; display: block; margin-top: 15px; color: #334155; font-size: 14px; }
-    select, textarea, input { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; background: rgba(255,255,255,0.9); }
+    select, textarea, input { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; background: rgba(255,255,255,0.95); }
     
     .star-rating { display: flex; gap: 8px; font-size: 32px; cursor: pointer; margin-top: 5px; justify-content: center; }
     .star { color: #cbd5e1; transition: color 0.2s; }
@@ -91,9 +92,16 @@
 <body>
 
 <div class="card">
-  <!-- Logo pequeño superior -->
+  <!-- Logotipo IUSA Integrado en SVG Vectorial (Nunca se rompe) -->
   <div class="header-logo">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Logo_IUSA.svg/1200px-Logo_IUSA.svg.png" alt="IUSA Logo">
+    <svg viewBox="0 0 320 380">
+      <path d="M 120,5 L 315,190 L 260,320 L 205,320 L 5,120 L 60,5 Z" fill="none" stroke="#000000" stroke-width="22"/>
+      <text x="12" y="115" font-family="Arial Black,sans-serif" font-weight="900" font-size="95" fill="#E30613">I</text>
+      <text x="40" y="180" font-family="Arial Black,sans-serif" font-weight="900" font-size="95" fill="#E30613">U</text>
+      <text x="110" y="250" font-family="Arial Black,sans-serif" font-weight="900" font-size="95" fill="#E30613">S</text>
+      <text x="180" y="310" font-family="Arial Black,sans-serif" font-weight="900" font-size="95" fill="#E30613">A</text>
+      <text x="175" y="365" font-family="Arial,sans-serif" font-weight="bold" font-size="42" fill="#000000">1939</text>
+    </svg>
   </div>
 
   <h2>Gestión de Transporte IUSA</h2>
@@ -158,10 +166,9 @@
 <script>
   // CONFIGURACIÓN DE SUPABASE
   const SUPABASE_URL = "https://jjfcesrsexuxyamoghsx.supabase.co";
-  const SUPABASE_KEY = "sb_publishable_tkHpyaqmhlm8HuQvcVwzPg_Q0hehaPF  "; 
+  const SUPABASE_KEY = "sb_publishable_tkHpyaqmhlm8HuQvcVwzPg_Q0hehaPF"; // <-- REEMPLAZA CON TU KEY
   const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // Parámetros de la URL
   const urlParams = new URLSearchParams(window.location.search);
   const idCamion = urlParams.get('camion') || urlParams.get('id') || "123456";
   let nombreChoferFinal = urlParams.get('chofer') || "Cargando...";
@@ -170,16 +177,14 @@
   const etiquetas = ["", "1★ - Pésimo", "2★ - Malo", "3★ - Regular", "4★ - Bueno", "5★ - Excelente"];
   let html5QrcodeScanner;
 
-  // Función para obtener los datos del chofer desde Supabase o URL
+  // Consulta dinámica en Supabase para obtener el Chofer
   async function cargarDatosCamion() {
-    // Si viene en la URL directamenete lo usamos
     if (urlParams.get('chofer')) {
       nombreChoferFinal = urlParams.get('chofer');
       renderInfo();
       return;
     }
 
-    // Si solo viene el ID del camión, buscamos el chofer asignado en Supabase
     const { data, error } = await _supabase
       .from('choferes_unidades')
       .select('*')
