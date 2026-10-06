@@ -3,12 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistema de Reporte y Evaluación</title>
+  <title>IUSA - Sistema de Evaluaciones y Reportes de Transporte</title>
   <script src="https://unpkg.com/html5-qrcode"></script>
+  <!-- Cliente oficial de Supabase via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f1f5f9; margin: 0; padding: 15px; }
     .card { background: #ffffff; border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 450px; margin: 0 auto; }
-    h2 { text-align: center; color: #0f172a; margin-top: 0; }
+    h2 { text-align: center; color: #0f172a; margin-top: 0; font-size: 20px; }
     .info-box { background: #e0f2fe; border-left: 5px solid #0284c7; padding: 12px; border-radius: 6px; margin-bottom: 20px; }
     .info-box p { margin: 4px 0; color: #0369a1; font-weight: 600; font-size: 14px; }
     label { font-weight: bold; display: block; margin-top: 15px; color: #334155; font-size: 14px; }
@@ -17,34 +19,53 @@
     .star { color: #cbd5e1; transition: color 0.2s; }
     .star.selected { color: #f59e0b; }
     .btn-scan { background: #0f766e; color: #fff; border: none; padding: 12px; border-radius: 6px; width: 100%; cursor: pointer; margin-top: 8px; font-weight: bold; }
+    .btn-toggle-manual { background: transparent; color: #2563eb; border: none; padding: 6px; cursor: pointer; font-size: 13px; text-decoration: underline; width: 100%; text-align: center; margin-top: 6px; }
     .btn-submit { background: #2563eb; color: #fff; border: none; padding: 14px; border-radius: 6px; width: 100%; cursor: pointer; margin-top: 20px; font-weight: bold; font-size: 16px; }
     #reader { width: 100%; margin-top: 10px; border-radius: 8px; overflow: hidden; display: none; }
     .badge-scanned { background: #dcfce7; color: #15803d; padding: 10px; border-radius: 6px; margin-top: 8px; font-weight: bold; text-align: center; display: none; }
+    .notice-pin { font-size: 12px; color: #0284c7; margin-top: 4px; font-weight: normal; }
   </style>
 </head>
 <body>
 
 <div class="card">
-  <h2>Evaluar / Reportar Unidad</h2>
+  <h2>Gestión de Transporte IUSA</h2>
   
   <div class="info-box" id="infoChofer">
-    <p>Cargando información del chofer y unidad...</p>
+    <p>Cargando datos de la unidad...</p>
   </div>
 
   <form id="formReporte">
-    <label>1. Identificación Emisor (Credencial):</label>
-    <button type="button" class="btn-scan" onclick="iniciarEscaner()">📷 Escanear Código de Barras</button>
-    <div id="reader"></div>
-    <div id="badgeCredencial" class="badge-scanned">✓ Credencial Capturada: <span id="numCredencialTexto"></span></div>
+    <label>1. Credencial del Colaborador:</label>
+    
+    <!-- Escáner -->
+    <div id="bloqueEscaner">
+      <button type="button" class="btn-scan" onclick="iniciarEscaner()">📷 Escanear Código de Barras</button>
+      <button type="button" class="btn-toggle-manual" onclick="mostrarModoManual()">¿Credencial dañada? Capturar manualmente</button>
+      <div id="reader"></div>
+      <div id="badgeCredencial" class="badge-scanned">✓ Credencial: <span id="numCredencialTexto"></span></div>
+    </div>
+
+    <!-- Captura Manual -->
+    <div id="bloqueManual" style="display: none;">
+      <input type="text" id="inputManualCredencial" placeholder="Ej. 08001906" oninput="sincronizarManual(this.value)">
+      <button type="button" class="btn-toggle-manual" onclick="mostrarModoEscaner()">Usar cámara para escanear</button>
+    </div>
+
     <input type="hidden" id="credencialEmisor" required>
 
-    <label for="tipoEnvio">2. Tipo de Registro:</label>
+    <!-- PIN de Seguridad con Auto-registro -->
+    <label for="pinSeguridad">2. PIN de Seguridad (4 dígitos):</label>
+    <input type="password" id="pinSeguridad" maxlength="4" placeholder="****" pattern="[0-9]{4}" inputmode="numeric" required>
+    <div class="notice-pin">Si es tu primer uso, el PIN que ingreses se registrará automáticamente como tu clave personal.</div>
+
+    <label for="tipoEnvio">3. Tipo de Registro:</label>
     <select id="tipoEnvio" onchange="cambiarTipo()">
       <option value="Calificación">Calificación (Estrellas)</option>
       <option value="Reporte de Falta">Reporte de Falta / Incidencia</option>
     </select>
 
-    <!-- Sección de Estrellitas (Visible por defecto) -->
+    <!-- Calificación -->
     <div id="seccionCalificacion">
       <label>Puntuación:</label>
       <div class="star-rating">
@@ -57,9 +78,9 @@
       <p id="etiquetaPuntuacion" style="font-weight: bold; color: #f59e0b; text-align: center; margin-top: 5px;"></p>
     </div>
 
-    <!-- Sección de Texto para Reporte de Falta (Oculta por defecto) -->
+    <!-- Reporte de Falta -->
     <div id="seccionReporte" style="display: none;">
-      <label for="comentario">3. Detalle de la Falta / Incidencia:</label>
+      <label for="comentario">Detalle de la Incidencia:</label>
       <textarea id="comentario" rows="4" placeholder="Escribe aquí los detalles del reporte..."></textarea>
     </div>
 
@@ -68,9 +89,11 @@
 </div>
 
 <script>
-  // REEMPLAZA ESTA URL CON LA QUE TE DIO GOOGLE APPS SCRIPT
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbze0fhYMzJ9vdhbQ_hhGAI9RMTVTMtBlquqNu8Ct6W8zG968JDC0_soeEyPv6BwgDR5TA/exec"; 
-  
+  // CONFIGURACIÓN DE SUPABASE
+  const SUPABASE_URL = "https://jjfcesrsexuxyamoghsx.supabase.co ";
+  const SUPABASE_KEY = "sb_publishable_tkHpyaqmhlm8HuQvcVwzPg_Q0hehaPF"; // <-- PEGA AQUÍ LA CLAVE QUE COPIASTE
+  const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
   const urlParams = new URLSearchParams(window.location.search);
   const idChofer = urlParams.get('id') || "123456";
   
@@ -78,23 +101,11 @@
   const etiquetas = ["", "1★ - Pésimo", "2★ - Malo", "3★ - Regular", "4★ - Bueno", "5★ - Excelente"];
   let html5QrcodeScanner;
 
-  // Cargar datos del chofer
-  fetch(`${SCRIPT_URL}?id=${idChofer}`)
-    .then(res => res.json())
-    .then(data => {
-      if(data.error) {
-        document.getElementById('infoChofer').innerHTML = `<p style="color:red">${data.error}</p>`;
-      } else {
-        document.getElementById('infoChofer').innerHTML = `
-          <p>Chofer: ${data.nombre}</p>
-          <p>Unidad: ${data.camion}</p>
-          <p>ID Empleado: ${data.id}</p>
-        `;
-      }
-    })
-    .catch(() => {
-      document.getElementById('infoChofer').innerHTML = `<p style="color:red">Error al conectar con la base de datos.</p>`;
-    });
+  // Cargar datos de la unidad desde URL
+  document.getElementById('infoChofer').innerHTML = `
+    <p>Unidad Asignada: ID-${idChofer}</p>
+    <p>Empresa: IUSA Transportes</p>
+  `;
 
   function setRating(val) {
     ratingVal = val;
@@ -106,7 +117,6 @@
     document.getElementById('etiquetaPuntuacion').innerText = etiquetas[val];
   }
 
-  // Alternar visibilidad excluyente entre Calificación y Reporte
   function cambiarTipo() {
     const tipo = document.getElementById('tipoEnvio').value;
     const secCal = document.getElementById('seccionCalificacion');
@@ -127,6 +137,24 @@
     }
   }
 
+  function mostrarModoManual() {
+    if(html5QrcodeScanner) { try { html5QrcodeScanner.stop(); } catch(e){} }
+    document.getElementById('bloqueEscaner').style.display = 'none';
+    document.getElementById('bloqueManual').style.display = 'block';
+    document.getElementById('credencialEmisor').value = "";
+  }
+
+  function mostrarModoEscaner() {
+    document.getElementById('bloqueManual').style.display = 'none';
+    document.getElementById('bloqueEscaner').style.display = 'block';
+    document.getElementById('credencialEmisor').value = "";
+    document.getElementById('badgeCredencial').style.display = 'none';
+  }
+
+  function sincronizarManual(val) {
+    document.getElementById('credencialEmisor').value = val.trim();
+  }
+
   function iniciarEscaner() {
     document.getElementById('reader').style.display = 'block';
     html5QrcodeScanner = new Html5Qrcode("reader");
@@ -140,45 +168,96 @@
         html5QrcodeScanner.stop();
         document.getElementById('reader').style.display = 'none';
       },
-      () => { /* buscando... */ }
+      () => {}
     );
   }
 
-  document.getElementById('formReporte').addEventListener('submit', function(e) {
+  // Lógica de Envío y Validación en Supabase
+  document.getElementById('formReporte').addEventListener('submit', async function(e) {
     e.preventDefault();
-    if(!document.getElementById('credencialEmisor').value) {
-      alert("Por favor escanea la credencial antes de enviar el reporte.");
-      return;
-    }
-    
-    const tipo = document.getElementById('tipoEnvio').value;
-    if (tipo === 'Calificación' && ratingVal === 0) {
-      alert("Por favor selecciona una puntuación de estrellitas.");
+    const credencialIngresada = document.getElementById('credencialEmisor').value.trim();
+    const pinIngresado = document.getElementById('pinSeguridad').value.trim();
+
+    if(!credencialIngresada) {
+      alert("Por favor escanea o ingresa tu número de credencial.");
       return;
     }
 
-    const payload = {
-      idChofer: idChofer,
-      credencialEmisor: document.getElementById('credencialEmisor').value,
-      tipoEnvio: tipo,
-      puntuacion: ratingVal,
-      etiqueta: etiquetas[ratingVal],
-      comentario: document.getElementById('comentario').value || "Sin comentario"
-    };
+    if(!pinIngresado || pinIngresado.length !== 4) {
+      alert("Por favor ingresa tu PIN de seguridad de 4 dígitos.");
+      return;
+    }
 
-    fetch(SCRIPT_URL, {
-      method: 'POST',
-      body: JSON.stringify(payload)
-    })
-    .then(res => res.json())
-    .then(data => {
-      if(data.status === 'success') {
-        alert("¡Registro enviado exitosamente!\nFolio: " + data.idReporte);
-        location.reload();
-      } else {
-        alert("Error al guardar: " + data.message);
+    // Normaliza el número borrando ceros iniciales para la comparación
+    const numLimpio = parseInt(credencialIngresada, 10).toString();
+
+    // 1. Consultar credencial en Supabase
+    const { data: usuario, error } = await _supabase
+      .from('credenciales_validas')
+      .select('*')
+      .eq('numero_credencial', numLimpio)
+      .maybeSingle();
+
+    if (error) {
+      alert("Error al conectar con el servidor: " + error.message);
+      return;
+    }
+
+    // Si la credencial no existe en el padrón
+    if (!usuario) {
+      alert("Credencial no registrada en el padrón activo de IUSA.");
+      return;
+    }
+
+    if (usuario.estado.toLowerCase() !== 'activo') {
+      alert("Esta credencial se encuentra Inactiva.");
+      return;
+    }
+
+    // 2. Lógica de PIN (Auto-registro o Verificación)
+    if (!usuario.pin_seguridad) {
+      // PRIMER USO: Registra el PIN ingresado por el usuario
+      const { error: updateError } = await _supabase
+        .from('credenciales_validas')
+        .update({ pin_seguridad: pinIngresado })
+        .eq('id', usuario.id);
+
+      if (updateError) {
+        alert("Error al registrar el PIN inicial: " + updateError.message);
+        return;
       }
-    });
+      alert("¡PIN asignado correctamente como tu clave personal para futuros usos!");
+    } else if (usuario.pin_seguridad !== pinIngresado) {
+      // USOS POSTERIORES: Verifica coincidencia
+      alert("PIN de seguridad incorrecto.");
+      return;
+    }
+
+    // 3. Guardar Reporte en Supabase
+    const tipo = document.getElementById('tipoEnvio').value;
+    const folio = "REP-" + Math.floor(100000 + Math.random() * 900000);
+
+    const { error: insertError } = await _supabase
+      .from('reportes_recibidos')
+      .insert([
+        {
+          folio_reporte: folio,
+          id_chofer: idChofer,
+          credencial_emisor: numLimpio,
+          tipo_envio: tipo,
+          puntuacion: ratingVal ? ratingVal.toString() : "N/A",
+          etiqueta: etiquetas[ratingVal] || "N/A",
+          comentario: document.getElementById('comentario').value || "Sin detalle",
+          estatus: 'Activo'
+        }
+      ]);
+
+    if (insertError) {
+      alert("Error al guardar el registro: " + insertError.message);
+    } else {
+      alert("¡Registro enviado exitosamente!\nFolio: " + folio + "\nUsuario: " + (usuario.nombre_usuario || numLimpio));
+      location.reload();
+    }
   });
 </script>
 
