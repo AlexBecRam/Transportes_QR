@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Reporte y Evaluación</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f1f5f9; margin: 0; padding: 15px; }
+    .card { background: #ffffff; border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 450px; margin: 0 auto; }
+    h2 { text-align: center; color: #0f172a; margin-top: 0; }
+    .info-box { background: #e0f2fe; border-left: 5px solid #0284c7; padding: 12px; border-radius: 6px; margin-bottom: 20px; }
+    .info-box p { margin: 4px 0; color: #0369a1; font-weight: 600; font-size: 14px; }
+    label { font-weight: bold; display: block; margin-top: 15px; color: #334155; font-size: 14px; }
+    select, textarea, input { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; }
+    .star-rating { display: flex; gap: 8px; font-size: 32px; cursor: pointer; margin-top: 5px; justify-content: center; }
+    .star { color: #cbd5e1; transition: color 0.2s; }
+    .star.selected { color: #f59e0b; }
+    .btn-scan { background: #0f766e; color: #fff; border: none; padding: 12px; border-radius: 6px; width: 100%; cursor: pointer; margin-top: 8px; font-weight: bold; }
+    .btn-submit { background: #2563eb; color: #fff; border: none; padding: 14px; border-radius: 6px; width: 100%; cursor: pointer; margin-top: 20px; font-weight: bold; font-size: 16px; }
+    #reader { width: 100%; margin-top: 10px; border-radius: 8px; overflow: hidden; display: none; }
+    .badge-scanned { background: #dcfce7; color: #15803d; padding: 10px; border-radius: 6px; margin-top: 8px; font-weight: bold; text-align: center; display: none; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h2>Evaluar / Reportar Unidad</h2>
+  
+  <div class="info-box" id="infoChofer">
+    <p>Cargando información del chofer y unidad...</p>
+  </div>
+
+  <form id="formReporte">
+    <label>1. Identificación Emisor (Credencial):</label>
+    <button type="button" class="btn-scan" onclick="iniciarEscaner()">📷 Escanear Código de Barras</button>
+    <div id="reader"></div>
+    <div id="badgeCredencial" class="badge-scanned">✓ Credencial Capturada: <span id="numCredencialTexto"></span></div>
+    <input type="hidden" id="credencialEmisor" required>
+
+    <label for="tipoEnvio">2. Tipo de Registro:</label>
+    <select id="tipoEnvio" onchange="cambiarTipo()">
+      <option value="Calificación">Calificación (Estrellas)</option>
+      <option value="Reporte de Falta">Reporte de Falta / Incidencia</option>
+    </select>
+
+    <!-- Sección de Estrellitas (Visible por defecto) -->
+    <div id="seccionCalificacion">
+      <label>Puntuación:</label>
+      <div class="star-rating">
+        <span class="star" onclick="setRating(1)">★</span>
+        <span class="star" onclick="setRating(2)">★</span>
+        <span class="star" onclick="setRating(3)">★</span>
+        <span class="star" onclick="setRating(4)">★</span>
+        <span class="star" onclick="setRating(5)">★</span>
+      </div>
+      <p id="etiquetaPuntuacion" style="font-weight: bold; color: #f59e0b; text-align: center; margin-top: 5px;"></p>
+    </div>
+
+    <!-- Sección de Texto para Reporte de Falta (Oculta por defecto) -->
+    <div id="seccionReporte" style="display: none;">
+      <label for="comentario">3. Detalle de la Falta / Incidencia:</label>
+      <textarea id="comentario" rows="4" placeholder="Escribe aquí los detalles del reporte..."></textarea>
+    </div>
+
+    <button type="submit" class="btn-submit">Enviar Registro</button>
+  </form>
+</div>
+
+<script>
+  // REEMPLAZA ESTA URL CON LA QUE TE DIO GOOGLE APPS SCRIPT
+  const SCRIPT_URL = "PEGAR_AQUI_TU_URL_DE_APPS_SCRIPT"; 
+  
+  const urlParams = new URLSearchParams(window.location.search);
+  const idChofer = urlParams.get('id') || "123456";
+  
+  let ratingVal = 0;
+  const etiquetas = ["", "1★ - Pésimo", "2★ - Malo", "3★ - Regular", "4★ - Bueno", "5★ - Excelente"];
+  let html5QrcodeScanner;
+
+  // Cargar datos del chofer
+  fetch(`${SCRIPT_URL}?id=${idChofer}`)
+    .then(res => res.json())
+    .then(data => {
+      if(data.error) {
+        document.getElementById('infoChofer').innerHTML = `<p style="color:red">${data.error}</p>`;
+      } else {
+        document.getElementById('infoChofer').innerHTML = `
+          <p>Chofer: ${data.nombre}</p>
+          <p>Unidad: ${data.camion}</p>
+          <p>ID Empleado: ${data.id}</p>
+        `;
+      }
+    })
+    .catch(() => {
+      document.getElementById('infoChofer').innerHTML = `<p style="color:red">Error al conectar con la base de datos.</p>`;
+    });
+
+  function setRating(val) {
+    ratingVal = val;
+    const stars = document.querySelectorAll('.star');
+    stars.forEach((s, idx) => {
+      if(idx < val) s.classList.add('selected');
+      else s.classList.remove('selected');
+    });
+    document.getElementById('etiquetaPuntuacion').innerText = etiquetas[val];
+  }
+
+  // Alternar visibilidad excluyente entre Calificación y Reporte
+  function cambiarTipo() {
+    const tipo = document.getElementById('tipoEnvio').value;
+    const secCal = document.getElementById('seccionCalificacion');
+    const secRep = document.getElementById('seccionReporte');
+    const txtComentario = document.getElementById('comentario');
+
+    if (tipo === 'Calificación') {
+      secCal.style.display = 'block';
+      secRep.style.display = 'none';
+      txtComentario.removeAttribute('required');
+      txtComentario.value = "";
+    } else {
+      secCal.style.display = 'none';
+      secRep.style.display = 'block';
+      txtComentario.setAttribute('required', 'true');
+      ratingVal = 0;
+      setRating(0);
+    }
+  }
+
+  function iniciarEscaner() {
+    document.getElementById('reader').style.display = 'block';
+    html5QrcodeScanner = new Html5Qrcode("reader");
+    html5QrcodeScanner.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 250, height: 120 } },
+      (decodedText) => {
+        document.getElementById('credencialEmisor').value = decodedText;
+        document.getElementById('numCredencialTexto').innerText = decodedText;
+        document.getElementById('badgeCredencial').style.display = 'block';
+        html5QrcodeScanner.stop();
+        document.getElementById('reader').style.display = 'none';
+      },
+      () => { /* buscando... */ }
+    );
+  }
+
+  document.getElementById('formReporte').addEventListener('submit', function(e) {
+    e.preventDefault();
+    if(!document.getElementById('credencialEmisor').value) {
+      alert("Por favor escanea la credencial antes de enviar el reporte.");
+      return;
+    }
+    
+    const tipo = document.getElementById('tipoEnvio').value;
+    if (tipo === 'Calificación' && ratingVal === 0) {
+      alert("Por favor selecciona una puntuación de estrellitas.");
+      return;
+    }
+
+    const payload = {
+      idChofer: idChofer,
+      credencialEmisor: document.getElementById('credencialEmisor').value,
+      tipoEnvio: tipo,
+      puntuacion: ratingVal,
+      etiqueta: etiquetas[ratingVal],
+      comentario: document.getElementById('comentario').value || "Sin comentario"
+    };
+
+    fetch(SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+      if(data.status === 'success') {
+        alert("¡Registro enviado exitosamente!\nFolio: " + data.idReporte);
+        location.reload();
+      } else {
+        alert("Error al guardar: " + data.message);
+      }
+    });
+  });
+</script>
+
+</body>
+</html>
