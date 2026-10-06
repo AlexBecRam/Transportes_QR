@@ -18,29 +18,28 @@
       justify-content: center;
       align-items: center;
       position: relative;
-      overflow-x: hidden;
     }
 
-    /* Fondo con Marca de Agua IUSA */
+    /* Imagen del logotipo de IUSA colocada como Marca de Agua de Fondo */
     body::before {
       content: "";
       position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 320px;
-      height: 380px;
-      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 380"><path d="M 120,5 L 315,190 L 260,320 L 205,320 L 5,120 L 60,5 Z" fill="none" stroke="%23000000" stroke-width="20"/><text x="12" y="115" font-family="Arial Black,sans-serif" font-weight="900" font-size="95" fill="%23E30613">I</text><text x="40" y="180" font-family="Arial Black,sans-serif" font-weight="900" font-size="95" fill="%23E30613">U</text><text x="110" y="250" font-family="Arial Black,sans-serif" font-weight="900" font-size="95" fill="%23E30613">S</text><text x="180" y="310" font-family="Arial Black,sans-serif" font-weight="900" font-size="95" fill="%23E30613">A</text><text x="175" y="365" font-family="Arial,sans-serif" font-weight="bold" font-size="42" fill="%23000000">1939</text></svg>');
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Logo_IUSA.svg/1200px-Logo_IUSA.svg.png');
       background-repeat: no-repeat;
       background-position: center;
-      background-size: contain;
-      opacity: 0.08;
+      background-size: 280px auto;
+      opacity: 0.10; /* Opacidad suave para no tapar los textos */
       z-index: 0;
       pointer-events: none;
     }
 
     .card {
-      background: rgba(255, 255, 255, 0.95);
+      background: rgba(255, 255, 255, 0.92); /* Tarjeta semi-transparente que deja ver la marca de agua */
+      backdrop-filter: blur(4px);
       border-radius: 14px;
       padding: 22px;
       box-shadow: 0 8px 24px rgba(0,0,0,0.12);
@@ -54,12 +53,12 @@
 
     .header-logo {
       text-align: center;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
 
-    .header-logo svg {
-      width: 75px;
-      height: 90px;
+    .header-logo img {
+      max-width: 80px;
+      height: auto;
     }
 
     h2 { text-align: center; color: #0f172a; margin-top: 0; margin-bottom: 15px; font-size: 20px; }
@@ -74,7 +73,7 @@
     .info-box p { margin: 5px 0; color: #0369a1; font-weight: 600; font-size: 14px; }
     
     label { font-weight: bold; display: block; margin-top: 15px; color: #334155; font-size: 14px; }
-    select, textarea, input { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; }
+    select, textarea, input { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; background: rgba(255,255,255,0.9); }
     
     .star-rating { display: flex; gap: 8px; font-size: 32px; cursor: pointer; margin-top: 5px; justify-content: center; }
     .star { color: #cbd5e1; transition: color 0.2s; }
@@ -92,22 +91,15 @@
 <body>
 
 <div class="card">
-  <!-- Logotipo IUSA Superior -->
+  <!-- Logo pequeño superior -->
   <div class="header-logo">
-    <svg viewBox="0 0 320 380">
-      <path d="M 120,5 L 315,190 L 260,320 L 205,320 L 5,120 L 60,5 Z" fill="none" stroke="#000000" stroke-width="22"/>
-      <text x="12" y="115" font-family="Arial Black,sans-serif" font-weight="900" font-size="95" fill="#E30613">I</text>
-      <text x="40" y="180" font-family="Arial Black,sans-serif" font-weight="900" font-size="95" fill="#E30613">U</text>
-      <text x="110" y="250" font-family="Arial Black,sans-serif" font-weight="900" font-size="95" fill="#E30613">S</text>
-      <text x="180" y="310" font-family="Arial Black,sans-serif" font-weight="900" font-size="95" fill="#E30613">A</text>
-      <text x="175" y="365" font-family="Arial,sans-serif" font-weight="bold" font-size="42" fill="#000000">1939</text>
-    </svg>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Logo_IUSA.svg/1200px-Logo_IUSA.svg.png" alt="IUSA Logo">
   </div>
 
   <h2>Gestión de Transporte IUSA</h2>
   
   <div class="info-box" id="infoChofer">
-    <p>Cargando datos del camión...</p>
+    <p>Cargando información del transporte...</p>
   </div>
 
   <form id="formReporte">
@@ -129,7 +121,7 @@
 
     <input type="hidden" id="credencialEmisor" required>
 
-    <!-- PIN de Seguridad con Auto-registro -->
+    <!-- PIN de Seguridad -->
     <label for="pinSeguridad">2. PIN de Seguridad (4 dígitos):</label>
     <input type="password" id="pinSeguridad" maxlength="4" placeholder="****" pattern="[0-9]{4}" inputmode="numeric" required>
     <div class="notice-pin">Si es tu primer uso, el PIN que ingreses se registrará automáticamente como tu clave personal.</div>
@@ -166,24 +158,51 @@
 <script>
   // CONFIGURACIÓN DE SUPABASE
   const SUPABASE_URL = "https://jjfcesrsexuxyamoghsx.supabase.co";
-  const SUPABASE_KEY = "sb_publishable_tkHpyaqmhlm8HuQvcVwzPg_Q0hehaPF  "; // <-- PEGA AQUÍ LA CLAVE 'Publishable key' QUE COPIASTE
+  const SUPABASE_KEY = "sb_publishable_tkHpyaqmhlm8HuQvcVwzPg_Q0hehaPF  "; 
   const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // Parámetros de URL
+  // Parámetros de la URL
   const urlParams = new URLSearchParams(window.location.search);
-  const numCamion = urlParams.get('camion') || urlParams.get('id') || "No especificado";
-  const nombreChofer = urlParams.get('chofer') || "No asignado";
-  
+  const idCamion = urlParams.get('camion') || urlParams.get('id') || "123456";
+  let nombreChoferFinal = urlParams.get('chofer') || "Cargando...";
+
   let ratingVal = 0;
   const etiquetas = ["", "1★ - Pésimo", "2★ - Malo", "3★ - Regular", "4★ - Bueno", "5★ - Excelente"];
   let html5QrcodeScanner;
 
-  // Cargar datos en la caja informativa
-  document.getElementById('infoChofer').innerHTML = `
-    <p>Número de Camión: <strong>${numCamion}</strong></p>
-    <p>Nombre del Chofer: <strong>${nombreChofer}</strong></p>
-    <p>Empresa: <strong>IUSA Transportes</strong></p>
-  `;
+  // Función para obtener los datos del chofer desde Supabase o URL
+  async function cargarDatosCamion() {
+    // Si viene en la URL directamenete lo usamos
+    if (urlParams.get('chofer')) {
+      nombreChoferFinal = urlParams.get('chofer');
+      renderInfo();
+      return;
+    }
+
+    // Si solo viene el ID del camión, buscamos el chofer asignado en Supabase
+    const { data, error } = await _supabase
+      .from('choferes_unidades')
+      .select('*')
+      .eq('id_camion', idCamion)
+      .maybeSingle();
+
+    if (data && data.nombre_chofer) {
+      nombreChoferFinal = data.nombre_chofer;
+    } else {
+      nombreChoferFinal = "No asignado en base de datos";
+    }
+    renderInfo();
+  }
+
+  function renderInfo() {
+    document.getElementById('infoChofer').innerHTML = `
+      <p>Número de Camión: <strong>${idCamion}</strong></p>
+      <p>Nombre del Chofer: <strong>${nombreChoferFinal}</strong></p>
+      <p>Empresa: <strong>IUSA Transportes</strong></p>
+    `;
+  }
+
+  cargarDatosCamion();
 
   function setRating(val) {
     ratingVal = val;
@@ -266,7 +285,6 @@
       return;
     }
 
-    // Normalización para comparar conservando o ignorando el "0" inicial
     const numTexto = credencialIngresada;
     const numLimpio = parseInt(credencialIngresada, 10).toString();
 
@@ -283,7 +301,6 @@
 
     const usuario = usuarios && usuarios.length > 0 ? usuarios[0] : null;
 
-    // Si la credencial no existe en el padrón
     if (!usuario) {
       alert("Credencial no registrada en el padrón activo de IUSA.");
       return;
@@ -294,9 +311,8 @@
       return;
     }
 
-    // 2. Lógica de PIN (Auto-registro o Verificación)
+    // 2. PIN Auto-registro o Verificación
     if (!usuario.pin_seguridad) {
-      // PRIMER USO: Registra el PIN ingresado por el usuario
       const { error: updateError } = await _supabase
         .from('credenciales_validas')
         .update({ pin_seguridad: pinIngresado })
@@ -308,7 +324,6 @@
       }
       alert("¡PIN asignado correctamente como tu clave personal para futuros usos!");
     } else if (usuario.pin_seguridad !== pinIngresado) {
-      // USOS POSTERIORES: Verifica coincidencia
       alert("PIN de seguridad incorrecto.");
       return;
     }
@@ -322,7 +337,7 @@
       .insert([
         {
           folio_reporte: folio,
-          id_chofer: `Camión: ${numCamion} | Chofer: ${nombreChofer}`,
+          id_chofer: `Camión: ${idCamion} | Chofer: ${nombreChoferFinal}`,
           credencial_emisor: numTexto,
           tipo_envio: tipo,
           puntuacion: ratingVal ? ratingVal.toString() : "N/A",
